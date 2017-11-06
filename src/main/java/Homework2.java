@@ -94,99 +94,6 @@ public class Homework2 {
 
 
 
-        //插入user数据
-//        String initUserSql = "INSERT INTO user(uid, name, phone, balance) values (?,?,?,?)";
-//        try {
-//            PreparedStatement userPrestatement = conn.prepareStatement(initUserSql);
-//            ArrayList<String[]> usrDatalist = readFile(filePaths[2]);
-//            for(int numRow = 0;numRow<usrDatalist.size();numRow++){
-//                String[] line = usrDatalist.get(numRow);
-//                String id = line[0];
-//                String name = line[1];
-//                String phone = line[2];
-//                Double balance = Double.parseDouble(line[3]);
-//                userPrestatement.setString(1,id);
-//                userPrestatement.setString(2,name);
-//                userPrestatement.setString(3,phone);
-//                userPrestatement.setDouble(4,balance);
-//                userPrestatement.addBatch();
-//            }
-//            userPrestatement.executeBatch();
-//            conn.commit();
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            try {
-//                conn.rollback();
-//            } catch (SQLException e1) {
-//                e1.printStackTrace();
-//            }
-//        }
-
-        //插入bike数据
-//        String initBikeSql = "INSERT INTO bike(bid) values (?);";
-//        try {
-//            PreparedStatement bikePreparedStatement = conn.prepareStatement(initBikeSql);
-//            ArrayList<String[]> bikedatalist = readFile(filePaths[0]);
-//            for(String[] row : bikedatalist){
-//                bikePreparedStatement.setString(1,row[0]);
-//                bikePreparedStatement.addBatch();
-//            }
-//            bikePreparedStatement.executeBatch();
-//            conn.commit();
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            try {
-//                conn.rollback();
-//            } catch (SQLException e1) {
-//                e1.printStackTrace();
-//            }
-//        }
-//        //添加更新余额的触发器
-//        String deleteTrigger = "DROP TRIGGER IF EXISTS updateBalance";
-//
-//        String updateBalanceSql = "CREATE TRIGGER updateBalance " +
-//                "AFTER INSERT ON record " +
-//                "FOR EACH ROW " +
-//                "  BEGIN " +
-//                "    UPDATE user u SET u.balance = u.balance - NEW.cost WHERE u.uid = NEW.uid; " +
-//                "  END;";
-//        try {
-//            Statement updateBalanceStatement = conn.createStatement();
-//            updateBalanceStatement.addBatch(deleteTrigger);
-//            updateBalanceStatement.addBatch(updateBalanceSql);
-//            updateBalanceStatement.executeBatch();
-//            conn.commit();
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            try {
-//                conn.rollback();
-//            } catch (SQLException e1) {
-//                e1.printStackTrace();
-//            }
-//        }
-
-//        //更新单车使用时间的触发器
-//        String deleteUpdateServertimeTrigger = "DROP TRIGGER IF EXISTS updateServertime;";
-//        String createUpdateServertimeTrigger = "CREATE TRIGGER updateServertime " +
-//                "AFTER INSERT ON record " +
-//                "FOR EACH ROW " +
-//                "  BEGIN " +
-//                "    UPDATE bike b SET b.servertime = b.servertime + (TIMESTAMPDIFF(MINUTE,NEW.starttime,NEW.endtime)/60) WHERE b.bid = NEW.bid; " +
-//                "  END;";
-//        try {
-//            Statement servertimeTriggerStatement = conn.createStatement();
-//            servertimeTriggerStatement.addBatch(deleteUpdateServertimeTrigger);
-//            servertimeTriggerStatement.addBatch(createUpdateServertimeTrigger);
-//            servertimeTriggerStatement.executeBatch();
-//            conn.commit();
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            try {
-//                conn.rollback();
-//            } catch (SQLException e1) {
-//                e1.printStackTrace();
-//            }
-//        }
 
 
         //插入record数据
@@ -275,6 +182,55 @@ public class Homework2 {
                 e1.printStackTrace();
             }
         }
+
+
+
+                //添加更新余额的触发器
+        String deleteTrigger = "DROP TRIGGER IF EXISTS updateBalance";
+
+        String updateBalanceSql = "CREATE TRIGGER updateBalance " +
+                "AFTER INSERT ON record " +
+                "FOR EACH ROW " +
+                "  BEGIN " +
+                "    UPDATE user u SET u.balance = u.balance - NEW.cost WHERE u.uid = NEW.uid; " +
+                "  END;";
+        try {
+            Statement updateBalanceStatement = conn.createStatement();
+            updateBalanceStatement.addBatch(deleteTrigger);
+            updateBalanceStatement.addBatch(updateBalanceSql);
+            updateBalanceStatement.executeBatch();
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try {
+                conn.rollback();
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
+        }
+
+        //更新单车使用时间的触发器
+        String deleteUpdateServertimeTrigger = "DROP TRIGGER IF EXISTS updateServertime;";
+        String createUpdateServertimeTrigger = "CREATE TRIGGER updateServertime " +
+                "AFTER INSERT ON record " +
+                "FOR EACH ROW " +
+                "  BEGIN " +
+                "    UPDATE bike b SET b.servertime = b.servertime + (TIMESTAMPDIFF(MINUTE,NEW.starttime,NEW.endtime)/60) WHERE b.bid = NEW.bid; " +
+                "  END;";
+        try {
+            Statement servertimeTriggerStatement = conn.createStatement();
+            servertimeTriggerStatement.addBatch(deleteUpdateServertimeTrigger);
+            servertimeTriggerStatement.addBatch(createUpdateServertimeTrigger);
+            servertimeTriggerStatement.executeBatch();
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try {
+                conn.rollback();
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
+        }
     }
 
     private void initHashMap(){
@@ -351,7 +307,7 @@ public class Homework2 {
     public void setAddress(){
         String setSql = "UPDATE user SET address = (SELECT r.endaddr" +
                                              "   FROM record r" +
-                                             "   WHERE user.uid = r.uid" +
+                                             "   WHERE user.uid = r.uid AND HOUR(r.endtime) BETWEEN 18 AND 24" +
                                              "   GROUP BY r.endaddr" +
                                              "   ORDER BY COUNT(*) DESC LIMIT 0,1);";
         try {
