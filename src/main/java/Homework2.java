@@ -12,6 +12,8 @@ import java.util.Date;
 public class Homework2 {
     private Connection conn = null;
     private String[] filePaths = new String[]{"resource/bike.txt","resource/record.txt","resource/user.txt"};
+    private HashMap<String,Double> balance = new HashMap<String, Double>();
+    private HashMap<String,Double> servertime = new HashMap<String, Double>();
 
     public Homework2(){
         try {
@@ -87,99 +89,104 @@ public class Homework2 {
             }
         }
 
+        //初始化用户余额和车辆服务时间的HashMap；
+        initHashMap();
+
+
+
         //插入user数据
-        String initUserSql = "INSERT INTO user(uid, name, phone, balance) values (?,?,?,?)";
-        try {
-            PreparedStatement userPrestatement = conn.prepareStatement(initUserSql);
-            ArrayList<String[]> usrDatalist = readFile(filePaths[2]);
-            for(int numRow = 0;numRow<usrDatalist.size();numRow++){
-                String[] line = usrDatalist.get(numRow);
-                String id = line[0];
-                String name = line[1];
-                String phone = line[2];
-                Double balance = Double.parseDouble(line[3]);
-                userPrestatement.setString(1,id);
-                userPrestatement.setString(2,name);
-                userPrestatement.setString(3,phone);
-                userPrestatement.setDouble(4,balance);
-                userPrestatement.addBatch();
-            }
-            userPrestatement.executeBatch();
-            conn.commit();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            try {
-                conn.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
-        }
+//        String initUserSql = "INSERT INTO user(uid, name, phone, balance) values (?,?,?,?)";
+//        try {
+//            PreparedStatement userPrestatement = conn.prepareStatement(initUserSql);
+//            ArrayList<String[]> usrDatalist = readFile(filePaths[2]);
+//            for(int numRow = 0;numRow<usrDatalist.size();numRow++){
+//                String[] line = usrDatalist.get(numRow);
+//                String id = line[0];
+//                String name = line[1];
+//                String phone = line[2];
+//                Double balance = Double.parseDouble(line[3]);
+//                userPrestatement.setString(1,id);
+//                userPrestatement.setString(2,name);
+//                userPrestatement.setString(3,phone);
+//                userPrestatement.setDouble(4,balance);
+//                userPrestatement.addBatch();
+//            }
+//            userPrestatement.executeBatch();
+//            conn.commit();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//            try {
+//                conn.rollback();
+//            } catch (SQLException e1) {
+//                e1.printStackTrace();
+//            }
+//        }
 
         //插入bike数据
-        String initBikeSql = "INSERT INTO bike(bid) values (?);";
-        try {
-            PreparedStatement bikePreparedStatement = conn.prepareStatement(initBikeSql);
-            ArrayList<String[]> bikedatalist = readFile(filePaths[0]);
-            for(String[] row : bikedatalist){
-                bikePreparedStatement.setString(1,row[0]);
-                bikePreparedStatement.addBatch();
-            }
-            bikePreparedStatement.executeBatch();
-            conn.commit();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            try {
-                conn.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
-        }
-        //添加更新余额的触发器
-        String deleteTrigger = "DROP TRIGGER IF EXISTS updateBalance";
+//        String initBikeSql = "INSERT INTO bike(bid) values (?);";
+//        try {
+//            PreparedStatement bikePreparedStatement = conn.prepareStatement(initBikeSql);
+//            ArrayList<String[]> bikedatalist = readFile(filePaths[0]);
+//            for(String[] row : bikedatalist){
+//                bikePreparedStatement.setString(1,row[0]);
+//                bikePreparedStatement.addBatch();
+//            }
+//            bikePreparedStatement.executeBatch();
+//            conn.commit();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//            try {
+//                conn.rollback();
+//            } catch (SQLException e1) {
+//                e1.printStackTrace();
+//            }
+//        }
+//        //添加更新余额的触发器
+//        String deleteTrigger = "DROP TRIGGER IF EXISTS updateBalance";
+//
+//        String updateBalanceSql = "CREATE TRIGGER updateBalance " +
+//                "AFTER INSERT ON record " +
+//                "FOR EACH ROW " +
+//                "  BEGIN " +
+//                "    UPDATE user u SET u.balance = u.balance - NEW.cost WHERE u.uid = NEW.uid; " +
+//                "  END;";
+//        try {
+//            Statement updateBalanceStatement = conn.createStatement();
+//            updateBalanceStatement.addBatch(deleteTrigger);
+//            updateBalanceStatement.addBatch(updateBalanceSql);
+//            updateBalanceStatement.executeBatch();
+//            conn.commit();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//            try {
+//                conn.rollback();
+//            } catch (SQLException e1) {
+//                e1.printStackTrace();
+//            }
+//        }
 
-        String updateBalanceSql = "CREATE TRIGGER updateBalance " +
-                "AFTER INSERT ON record " +
-                "FOR EACH ROW " +
-                "  BEGIN " +
-                "    UPDATE user u SET u.balance = u.balance - NEW.cost WHERE u.uid = NEW.uid; " +
-                "  END;";
-        try {
-            Statement updateBalanceStatement = conn.createStatement();
-            updateBalanceStatement.addBatch(deleteTrigger);
-            updateBalanceStatement.addBatch(updateBalanceSql);
-            updateBalanceStatement.executeBatch();
-            conn.commit();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            try {
-                conn.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
-        }
-
-        //更新单车使用时间的触发器
-        String deleteUpdateServertimeTrigger = "DROP TRIGGER IF EXISTS updateServertime;";
-        String createUpdateServertimeTrigger = "CREATE TRIGGER updateServertime " +
-                "AFTER INSERT ON record " +
-                "FOR EACH ROW " +
-                "  BEGIN " +
-                "    UPDATE bike b SET b.servertime = b.servertime + (TIMESTAMPDIFF(MINUTE,NEW.starttime,NEW.endtime)/30) WHERE b.bid = NEW.bid; " +
-                "  END;";
-        try {
-            Statement servertimeTriggerStatement = conn.createStatement();
-            servertimeTriggerStatement.addBatch(deleteUpdateServertimeTrigger);
-            servertimeTriggerStatement.addBatch(createUpdateServertimeTrigger);
-            servertimeTriggerStatement.executeBatch();
-            conn.commit();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            try {
-                conn.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
-        }
+//        //更新单车使用时间的触发器
+//        String deleteUpdateServertimeTrigger = "DROP TRIGGER IF EXISTS updateServertime;";
+//        String createUpdateServertimeTrigger = "CREATE TRIGGER updateServertime " +
+//                "AFTER INSERT ON record " +
+//                "FOR EACH ROW " +
+//                "  BEGIN " +
+//                "    UPDATE bike b SET b.servertime = b.servertime + (TIMESTAMPDIFF(MINUTE,NEW.starttime,NEW.endtime)/60) WHERE b.bid = NEW.bid; " +
+//                "  END;";
+//        try {
+//            Statement servertimeTriggerStatement = conn.createStatement();
+//            servertimeTriggerStatement.addBatch(deleteUpdateServertimeTrigger);
+//            servertimeTriggerStatement.addBatch(createUpdateServertimeTrigger);
+//            servertimeTriggerStatement.executeBatch();
+//            conn.commit();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//            try {
+//                conn.rollback();
+//            } catch (SQLException e1) {
+//                e1.printStackTrace();
+//            }
+//        }
 
 
         //插入record数据
@@ -195,7 +202,7 @@ public class Homework2 {
                 String endaddr = line[4];
                 String endtime = line[5];
                 int cost = calculateCost(starttime,endtime);
-                if(!canBeInsert(uid,cost)){
+                if(!canBeInsert(uid,bid,cost,starttime,endtime)){
                     continue;
                 }
                 recordPrepareStatement.setString(1,uid);
@@ -206,9 +213,60 @@ public class Homework2 {
                 recordPrepareStatement.setString(6,endtime);
                 recordPrepareStatement.setInt(7,cost);
                 recordPrepareStatement.addBatch();
-                recordPrepareStatement.executeBatch();
-                conn.commit();
             }
+            recordPrepareStatement.executeBatch();
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try {
+                conn.rollback();
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
+        }
+
+        //插入user数据
+        String initUserSql = "INSERT INTO user(uid, name, phone, balance) values (?,?,?,?)";
+        try {
+            PreparedStatement userPrestatement = conn.prepareStatement(initUserSql);
+            ArrayList<String[]> usrDatalist = readFile(filePaths[2]);
+            for(int numRow = 0;numRow<usrDatalist.size();numRow++){
+                String[] line = usrDatalist.get(numRow);
+                String id = line[0];
+                String name = line[1];
+                String phone = line[2];
+                Double balanceNow = balance.get(id);
+                userPrestatement.setString(1,id);
+                userPrestatement.setString(2,name);
+                userPrestatement.setString(3,phone);
+                userPrestatement.setDouble(4,balanceNow);
+                userPrestatement.addBatch();
+            }
+            userPrestatement.executeBatch();
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try {
+                conn.rollback();
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
+        }
+
+
+        //插入bike数据
+        String initBikeSql = "INSERT INTO bike(bid,servertime) values (?,?);";
+        try {
+            PreparedStatement bikePreparedStatement = conn.prepareStatement(initBikeSql);
+            ArrayList<String[]> bikedatalist = readFile(filePaths[0]);
+            for(String[] row : bikedatalist){
+                Double servertimeNow = servertime.get(row[0]);
+                bikePreparedStatement.setString(1,row[0]);
+                bikePreparedStatement.setDouble(2,servertimeNow);
+                bikePreparedStatement.addBatch();
+            }
+            bikePreparedStatement.executeBatch();
+            conn.commit();
         } catch (SQLException e) {
             e.printStackTrace();
             try {
@@ -219,27 +277,50 @@ public class Homework2 {
         }
     }
 
+    private void initHashMap(){
+        ArrayList<String[]> usrDatalist = readFile(filePaths[2]);
+        for(int numRow = 0;numRow<usrDatalist.size();numRow++){
+            String[] line = usrDatalist.get(numRow);
+            String uid = line[0];
+            Double money = Double.parseDouble(line[3]);
+            balance.put(uid,money);
+        }
+        ArrayList<String[]> bikedatalist = readFile(filePaths[0]);
+        for(String[] row : bikedatalist){
+            String bid = row[0];
+            servertime.put(bid,0.0);
+        }
+
+    }
+
     //判断record是否可插入
-    private boolean canBeInsert(String uid,int cost){
+    private boolean canBeInsert(String uid,String bid,int cost,String starttime,String endtime){
+        Double balanceNow = balance.get(uid);
+        if(balanceNow>=cost){
+            balanceNow = balanceNow-cost;
+            balance.put(uid,balanceNow);
+            Double timeCost  = calculateTime(starttime,endtime);
+            Double severtimeNow = servertime.get(bid);
+            severtimeNow = severtimeNow + timeCost;
+            servertime.put(bid,severtimeNow);
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    private Double calculateTime(String starttime,String endtime){
+        Date begin = null;
+        Double hour = 0.0;
         try {
-            String getBalanceSql = "SELECT balance FROM user WHERE uid = ?;";
-            PreparedStatement statement = conn.prepareStatement(getBalanceSql);
-            statement.setString(1,uid);
-            ResultSet resultSet = statement.executeQuery();
-            conn.commit();
-            resultSet.next();
-            Double balance  = resultSet.getBigDecimal(1).doubleValue();
-            statement.close();
-            if (balance >= cost){
-                return true;
-            }
-            else{
-                return false;
-            }
-        } catch (SQLException e) {
+            begin = new SimpleDateFormat("yyyy/MM/dd-hh:mm:ss").parse(starttime);
+            Date end = new SimpleDateFormat("yyyy/MM/dd-hh:mm:ss").parse(endtime);
+            long minutes = (end.getTime() - begin.getTime())/(1000*60);
+            hour = minutes/60.0;
+        } catch (ParseException e) {
             e.printStackTrace();
         }
-        return false;
+        return hour;
     }
 
 
