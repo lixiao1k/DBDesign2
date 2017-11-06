@@ -93,9 +93,6 @@ public class Homework2 {
         initHashMap();
 
 
-
-
-
         //插入record数据
         String initRecordSql = "INSERT INTO record(uid, bid, startaddr, starttime, endaddr, endtime, cost) values (?,?,?,?,?,?,?)";
         try {
