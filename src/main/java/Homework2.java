@@ -1,4 +1,5 @@
 import java.io.*;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -44,6 +45,8 @@ public class Homework2 {
                     "  balance DECIMAL(14,2) DEFAULT 0.00," +
                     "  PRIMARY KEY (uid)" +
                     ")default charset = utf8;";
+            String createUserIdIndex = "CREATE  INDEX  username ON user(uid);";
+
             String bikeDeleteSql = "DROP TABLE IF EXISTS bike;";
             String bikeCreateSql = "CREATE TABLE bike" +
                     "(" +
@@ -51,6 +54,8 @@ public class Homework2 {
                     "  servertime DECIMAL(4,2) DEFAULT 0.0," +
                     "  PRIMARY KEY (bid)" +
                     ")default charset = utf8;";
+            String createBikeIdIndex = "CREATE INDEX bikeid ON bike(bid);";
+
             String recordDeleteSql = "DROP TABLE IF EXISTS record;";
             String recordCreateSql = "CREATE TABLE record" +
                     "(" +
@@ -65,6 +70,8 @@ public class Homework2 {
                     ")default charset = utf8;";
             statement.addBatch(usrDeleteSql);
             statement.addBatch(usrCreateSql);
+            statement.addBatch(createUserIdIndex);
+
             statement.addBatch(bikeDeleteSql);
             statement.addBatch(bikeCreateSql);
             statement.addBatch(recordDeleteSql);
@@ -187,18 +194,21 @@ public class Homework2 {
                 String starttime = line[3];
                 String endaddr = line[4];
                 String endtime = line[5];
+                int cost = calculateCost(starttime,endtime);
+                if(!canBeInsert(uid,cost)){
+                    continue;
+                }
                 recordPrepareStatement.setString(1,uid);
                 recordPrepareStatement.setString(2,bid);
                 recordPrepareStatement.setString(3,startaddr);
                 recordPrepareStatement.setString(4,starttime);
                 recordPrepareStatement.setString(5,endaddr);
                 recordPrepareStatement.setString(6,endtime);
-                recordPrepareStatement.setInt(7,calculateCost(starttime,endtime));
+                recordPrepareStatement.setInt(7,cost);
                 recordPrepareStatement.addBatch();
+                recordPrepareStatement.executeBatch();
+                conn.commit();
             }
-            recordPrepareStatement.executeBatch();
-            conn.commit();
-
         } catch (SQLException e) {
             e.printStackTrace();
             try {
@@ -208,6 +218,31 @@ public class Homework2 {
             }
         }
     }
+
+    //判断record是否可插入
+    private boolean canBeInsert(String uid,int cost){
+        try {
+            String getBalanceSql = "SELECT balance FROM user WHERE uid = ?;";
+            PreparedStatement statement = conn.prepareStatement(getBalanceSql);
+            statement.setString(1,uid);
+            ResultSet resultSet = statement.executeQuery();
+            conn.commit();
+            resultSet.next();
+            Double balance  = resultSet.getBigDecimal(1).doubleValue();
+            statement.close();
+            if (balance >= cost){
+                return true;
+            }
+            else{
+                return false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+
     //计算用车费用
     private int calculateCost(String starttime,String endTime){
         int cost = 0;
